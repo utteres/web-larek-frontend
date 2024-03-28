@@ -1,96 +1,44 @@
-import { Form } from './common/Form';
-import { IOrderForm } from '../types/types';
 import { IEvents } from './base/events';
+import { Form } from './common/Form';
 
-export class Order extends Form<IOrderForm> {
-	protected _payment: 'online' | 'offline' | null = null; // Свойство для хранения выбранного метода оплаты
+export interface IOrder {
+  address: string;
+  payment: string;
+}
 
-	constructor(container: HTMLFormElement, events: IEvents) {
-		super(container, events);
+export class Order extends Form<IOrder> {
+  private _cash: HTMLButtonElement;
+  private _card: HTMLButtonElement;
 
-		// Обработчик для кнопки "Онлайн"
-		const onlineButton = this.container.querySelector(
-			'button[name="card"]'
-		) as HTMLButtonElement;
-		if (onlineButton) {
-			onlineButton.addEventListener('click', () => {
-				this.payment = 'online'; // Устанавливаем метод оплаты "Онлайн"
-				this.updatePaymentButtons(); // Обновляем стили кнопок оплаты
-			});
-		}
+  constructor(blockName: string , container: HTMLFormElement , events: IEvents) {
+    super(container, events);
+    this._cash = this.container.querySelector<HTMLButtonElement>('button[name="cash"]');
+    this._card = this.container.querySelector<HTMLButtonElement>('button[name="card"]');
+    this.setupEventListeners();
+  }
 
-		// Обработчик для кнопки "При получении"
-		const cashButton = container.querySelector(
-			'button[name="cash"]'
-		) as HTMLButtonElement;
-		if (cashButton) {
-			cashButton.addEventListener('click', () => {
-				this.payment = 'offline'; // Устанавливаем метод оплаты "При получении"
-				this.updatePaymentButtons(); // Обновляем стили кнопок оплаты
-			});
-		}
+  private setupEventListeners() {
+    if (this._cash && this._card) {
+      this._cash.addEventListener('click', () => this.handlePaymentButtonClick('cash'));
+      this._card.addEventListener('click', () => this.handlePaymentButtonClick('card'));
+    }
+  }
 
-		// Обработчик для кнопки "Далее"
-		const nextButton = this.container.querySelector(
-			'.order__button'
-		) as HTMLButtonElement;
-		if (nextButton) {
-			nextButton.addEventListener('click', () => {
-				this.handleNextButtonClick(); // Вызываем метод при нажатии кнопки "Далее"
-			});
-		}
-	}
+  private handlePaymentButtonClick(paymentMethod: 'cash' | 'card') {
+    this._cash.classList.toggle('button_alt-active', paymentMethod === 'cash');
+    this._card.classList.toggle('button_alt-active', paymentMethod === 'card');
+    this.onInputChange('payment', paymentMethod);
+  }
 
-	// Метод для обновления стилей кнопок оплаты
-	updatePaymentButtons() {
-		const onlineButton = this.container.querySelector('button[name="card"]');
-		const cashButton = this.container.querySelector('button[name="cash"]');
+  disableButtons() {
+    this._cash.classList.remove('button_alt-active');
+    this._card.classList.remove('button_alt-active');
+  }
 
-		onlineButton?.classList.remove('button_alt-active');
-		cashButton?.classList.remove('button_alt-active');
-
-		if (this._payment === 'online') {
-			onlineButton?.classList.add('button_alt-active');
-		} else if (this._payment === 'offline') {
-			cashButton?.classList.add('button_alt-active');
-		}
-	}
-
-	// Метод для обработки нажатия кнопки "Далее"
-	handleNextButtonClick() {
-		const addressInput = this.container.querySelector(
-			'input[name="address"]'
-		) as HTMLInputElement;
-		const nextButton = this.container.querySelector(
-			'.order__button'
-		) as HTMLButtonElement;
-		if (addressInput && this._payment) {
-			// Отправляем событие о необходимости открыть форму контактов
-			this.events.emit('contact:open');
-		}
-	}
-
-	// Геттер для получения метода оплаты
-	get payment(): 'online' | 'offline' | null {
-		return this._payment;
-	}
-
-	// Сеттер для установки метода оплаты
-	set payment(value: 'online' | 'offline' | null) {
-		this._payment = value;
-		// Генерируем событие о изменении метода оплаты
-		this.events.emit('payment:changed', { field: 'payment', value });
-	}
-
-	// Геттер для получения значения адреса
-	get address(): string {
-		return (this.container.elements.namedItem('address') as HTMLInputElement)
-			.value;
-	}
-
-	// Сеттер для установки значения адреса
-	set address(value: string) {
-		(this.container.elements.namedItem('address') as HTMLInputElement).value =
-			value;
-	}
+  set address(value: string) {
+    const addressInput = this.container.querySelector<HTMLInputElement>('input[name="address"]');
+    if (addressInput) {
+      addressInput.value = value;
+    }
+  }
 }

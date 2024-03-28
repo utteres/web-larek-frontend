@@ -1,39 +1,74 @@
-export interface IProduct {
-	id: string;
-	description: string;
-	image: string;
-	title: string;
-	category: string;
-	price: number;
-	error?: string;
+import { Product } from '../components/AppData';
+
+export type CategoryType = "софт-скил"|"другое"|"хард-скил"| "дополнительное" | "кнопка"
+export type CategoryObjectType={
+	[key in CategoryType]: string
+}
+export type FormErrors = Partial<Record<keyof IOrderForm, string>>;
+export interface ApiResponse {
+  items: IProduct[];
 }
 
-type PaymentMethod = 'online' | 'offline';
+export const CategoryObject: CategoryObjectType = {
+	'другое': 'card__category_other',
+	'софт-скил': 'card__category_soft',
+	'дополнительное': 'card__category_additional',
+	'кнопка': 'card__category_button',
+	'хард-скил': 'card__category_hard',
+};
 
-export interface IOrderForm {
-	email: string;
-	phone: string;
-	address: string;
-	payment: PaymentMethod;
+export interface ICard {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  image: string;
+  price: number | null;
+  selected: boolean;
 }
 
-export interface IOrder extends IOrderForm {
-	items: string[];
-	total: number;
+
+export interface IProduct extends ICard{
+  category: CategoryType;
 }
 
-export interface IOrderResult {
-	id: string;
-	total: number;
-}
-
-export type FormErrors = Partial<Record<keyof IOrder, string>>;
 
 export interface IAppState {
-	catalog: IProduct;
-	basket: string[];
-	preview: string | null;
-	order: IOrder | null;
+
+  basket: Product[];
+  store: Product[];
+  order: IOrder;
+  formErrors: FormErrors;
+
+  addToBasket(value: Product): void;
+  deleteProductBasket(id: string): void;
+  clearBasket(): void;
+  setItems(): void;
+  setOrderField(field: keyof IOrderForm, value: string): void;
+  getBasketCount(): number;
+  getTotalPrice(): number;
+  validateContacts(): boolean;
+  validateOrder(): boolean;
+  isValidEmail(email: string): boolean;
+  isValidPhone(phone: string): boolean;
+  refreshOrder(): boolean;
+  setStore(items: IProduct[]): void;
+  resetSelected(): void;
+  
 }
 
-export type IBasketItem = Pick<IProduct, 'id' | 'title' | 'price'>;
+export interface IOrder {
+  items: string[];
+  payment: string;
+  total: number;
+  address: string;
+  email: string;
+  phone: string;
+}
+
+export interface IOrderForm {
+  payment: string;
+  address: string;
+  email: string;
+  phone: string;
+}

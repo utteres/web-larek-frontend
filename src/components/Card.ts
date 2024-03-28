@@ -1,130 +1,94 @@
 import { Component } from './base/Component';
-import { IProduct } from '../types/types';
-import { ensureElement } from '../utils/utils';
+import { CategoryType , ICard , CategoryObject} from '../types/types';
+import { ensureElement} from '../utils/utils';
 
 interface ICardActions {
-	onClick: (event: MouseEvent) => void;
+  onClick: (event: MouseEvent) => void;
 }
 
-export interface ICard<T> {
-	title: string;
-	description?: string | string[];
-	image: string;
-	category: string;
-	price: number;
-	button?: HTMLButtonElement;
-}
+const CDN_URL = 'https://larek-api.nomoreparties.co/content/weblarek'
+export class Card extends Component<ICard> {
+  protected _title: HTMLElement;
+  protected _image: HTMLImageElement;
+  protected _category: HTMLElement;
+  protected _price: HTMLElement;
+  protected _button: HTMLButtonElement;
 
-export class Card<T> extends Component<ICard<T>> {
-	protected _title: HTMLElement;
-	protected _image?: HTMLImageElement;
-	protected _description?: HTMLElement;
-	protected _button?: HTMLButtonElement;
-	protected _category: HTMLElement;
-	protected _price: HTMLElement;
+  constructor(protected blockName: string , container: HTMLElement , actions?: ICardActions ) {
+    super(container);
 
-	constructor(
-		protected blockName: string,
-		container: HTMLElement,
-		actions?: ICardActions
-	) {
-		super(container);
+    this._title = ensureElement<HTMLElement>(`.${blockName}__title`, container);
+    this._image = ensureElement<HTMLImageElement>(`.${blockName}__image`, container );
+    this._button = this.domButton( blockName , '__button')
+    this._category = this.domElement(blockName , '__category');
+    this._price = this.domElement(blockName , '__price');
 
-		this._title = ensureElement<HTMLElement>(`.${blockName}__title`, container);
-		this._image = ensureElement<HTMLImageElement>(
-			`.${blockName}__image`,
-			container
-		);
-		this._button = container.querySelector(`.${blockName}__button`);
-		this._description = container.querySelector(`.${blockName}__description`);
-		this._category = ensureElement<HTMLElement>(
-			`.${blockName}__category`,
-			container
-		);
-		this._price = ensureElement<HTMLElement>(`.${blockName}__price`, container);
 
-		if (actions?.onClick) {
-			if (this._button) {
-				this._button.addEventListener('click', actions.onClick);
-			} else {
-				container.addEventListener('click', actions.onClick);
+    if (actions && typeof actions.onClick === 'function') {
+			const element = this._button ? this._button : container;
+			element.addEventListener('click', actions.onClick);
+		}
+  }
+
+  set id(value: string) {
+    this.container.dataset.id = value;
+  }
+  get id(): string {
+    return this.container.dataset.id || '';
+  }
+
+  set title(value: string) {
+    this.setText(this._title , value);
+  }
+  get title(): string {
+   return this.getText(this._title)
+  
+  }
+
+  set image(value: string) {
+    this._image.src = CDN_URL + value;
+  }
+
+  set selected(value: boolean) {
+    if (!this._button.disabled) {
+      this._button.disabled = value;
+    }
+  }
+
+  set price(value: number | null) {
+    this._price.textContent = value? value.toString() + ' синапсов': 'Нет цены';
+    if (this._button && !value) {
+      this._button.disabled = true;
+    }
+  }
+
+  set category(value: CategoryType) {
+		this.setText(this._category, value);
+		for (const key in CategoryObject) {
+			if (key === value) {
+				this._category.classList.add(CategoryObject[key]);
 			}
 		}
 	}
-
-	set id(value: string) {
-		this.container.dataset.id = value;
-	}
-
-	get id(): string {
-		return this.container.dataset.id || '';
-	}
-
-	set title(value: string) {
-		this.setText(this._title, value);
-	}
-
-	get title(): string {
-		return this._title.textContent || '';
-	}
-
-	set category(value: string) {
-		if (value === 'софт-скил') {
-			this._category.classList.add('card__category_soft');
-		} else if (value === 'другое') {
-			this._category.classList.add('card__category_other');
-		} else if (value === 'дополнительное') {
-			this._category.classList.add('card__category_optional');
-		} else if (value === 'кнопка') {
-			this._category.classList.add('card__category_button');
-		} else if (value === 'хард-скил') {
-			this._category.classList.add('card__category_hard');
-		}
-		this.setText(this._category, value);
-	}
-
-	get category(): string {
-		return this._category.textContent || '';
-	}
-
-	set price(value: string) {
-		if (value === null){
-			this.setText(this._price,'Нет цены')
-		}
-		else{
-		this.setText(this._price, `${value} Синапсов`,)
-		};
-	}
-
-	get price(): string {
-		return this._price.textContent;
-	}
-
-	set image(value: string) {
-		this.setImage(this._image, value, this.title);
-	}
-
-	set description(value: string | string[]) {
-		if (Array.isArray(value)) {
-			this._description.replaceWith(
-				...value.map((str) => {
-					const descTemplate = this._description.cloneNode() as HTMLElement;
-					this.setText(descTemplate, str);
-					return descTemplate;
-				})
-			);
-		} else {
-			this.setText(this._description, value);
-		}
-	}
 }
 
-export class CatalogItem extends Card<IProduct> {
-	querySelector(arg0: string) {
-		throw new Error('error');
-	}
-
-	constructor(container: HTMLElement, actions?: ICardActions) {
-		super('card', container, actions);
-	}
+export class StoreItem extends Card {
+  constructor(container: HTMLElement, actions?: ICardActions) {
+    super('card', container, actions);
+  }
 }
+
+export class StoreItemPreview extends Card {
+  protected _description: HTMLElement;
+
+  constructor(container: HTMLElement, actions?: ICardActions) {
+    super('card', container, actions);
+    this._description = this.domElement(this.blockName , '__text');
+  }
+
+  set description(value: string) {
+    this.setText(this._description , value)
+  }
+}
+
+  

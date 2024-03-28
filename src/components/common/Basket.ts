@@ -1,135 +1,97 @@
+import { IProduct } from '../../types/types';
 import { Component } from '../base/Component';
-import { createElement } from '../../utils/utils';
-import { EventEmitter } from '../base/events';
-import { ProductItem } from '../AppData';
+import { IEvents } from '../base/events';
 
-interface IBasketView {
-	items: HTMLElement[];
-	total: number;
-	selected: string[];
-	itemsInBasket: ProductItem[]; // Массив для хранения товаров в корзине
+
+export interface IBasketView {
+  button:HTMLButtonElement;
+  list: HTMLElement[];
+  price: number;
+}
+
+export interface IStoreItemBasketActions {
+  onClick: (event: MouseEvent) => void;
 }
 
 export class Basket extends Component<IBasketView> {
-	protected _list: HTMLElement;
-	protected _total: HTMLElement;
-	protected _button: HTMLElement;
-	protected _orderButton: HTMLButtonElement;
-	protected itemsInBasket: ProductItem[];
-	protected _counter: HTMLElement;
+  protected _list: HTMLElement;
+  protected _price: HTMLElement;
+  protected _button: HTMLButtonElement;
 
-	constructor(container: HTMLElement, protected events: EventEmitter) {
-		super(container);
-		this.itemsInBasket = [];
-		this._list = container.querySelector('.basket__list') as HTMLElement;
-		this._total = container.querySelector('.basket__price') as HTMLElement;
-		this._orderButton = container.querySelector(
-			'.basket__button'
-		) as HTMLButtonElement;
-		this._button = document.querySelector('.header__basket') as HTMLElement;
-		this._counter = this._button.querySelector(
-			'.header__basket-counter'
-		) as HTMLElement;
+  constructor(protected blockName: string , container: HTMLElement , protected events: IEvents) {
+    super(container);
+    this._list = this.domElement(blockName, '__list')
+    this._price = this.domElement(blockName, '__price')
+    this._button = this.domButton(blockName ,'__button')
 
-		if (this._button) {
-			this._button.addEventListener('click', () => {
-				events.emit('basket:open');
-			});
+    if (this._button) {
+      this._button.addEventListener('click', () => this.events.emit('basket:order'))
+    }
+  }
+
+  set price(price: number) {
+    this.setText(this._price, price.toString() + ' синапсов');
+  }
+
+  set list(items: HTMLElement[]) {
+    this._list.replaceChildren(...items);
+    if (!items.length) {
+			this.setDisabled(this._button , true);
 		}
+  }
 
-		if (this._orderButton) {
-			this._orderButton.addEventListener('click', () => {
-				events.emit('order:open');
-			});
-		}
-	}
+  disableButton(value:boolean) {
+    this.setDisabled(this._button, value)
+  }
 
-	set total(total: number) {
-		this.setText(this._total, total.toString() + " снипитов");
-	}
+  refreshIndices() {
+    const items = this._list.children;
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const indexElement = item.querySelector('.basket__item-index');
+        if (indexElement) {
+            indexElement.textContent = (i + 1).toString();
+        }
+    }
+} 
+}
 
-	addItemToBasket(item: ProductItem) {
-		this.itemsInBasket.push(item); // Добавляем товар в массив корзины
-		this.renderBasketItems();
-		this.updateTotal();
-		localStorage.setItem('basketItems', JSON.stringify(this.itemsInBasket));
-		this.updateCounter();
-	}
+export interface IProductInBasket extends IProduct {
+  id: string;
+  index: number;
+}
 
-	removeItemFromBasket(item: ProductItem) {
-		this.itemsInBasket = this.itemsInBasket.filter((i) => i !== item);
-		this.renderBasketItems();
-		this.updateTotal();
-		localStorage.setItem('basketItems', JSON.stringify(this.itemsInBasket));
-		this.updateCounter();
-	}
-	updateTotal() {
-		let total = 0;
+export class StoreItemBasket extends Component<IProductInBasket> {
+  protected _index: HTMLElement;
+  protected _title: HTMLElement;
+  protected _price: HTMLElement;
+  protected _button: HTMLButtonElement;
 
-		// Проходим по всем товарам в корзине и суммируем их цены
+  constructor(protected blockName: string , container: HTMLElement , actions?: IStoreItemBasketActions
+  ) {
+    super(container);
+    this._title = this.domElement( blockName,'__title');
+    this._price = this.domElement(blockName,'__price');
+    this._button = this.domButton(blockName,'__button');
+    this._index = container.querySelector(`.basket__item-index`);
 
-		this.itemsInBasket.forEach((item) => {
-			total += item.price;
-		});
+    if (this._button) {
+      this._button.addEventListener('click', (evt) => {
+        this.container.remove();
+        actions?.onClick(evt);
+      });
+    }
+  }
 
-		this.getItemsInBasket();
-		// Устанавливаем общую цену в элемент интерфейса
-		return (this.total = total);
-	}
+  set title(value: string) {
+    this.setText(this._title, value)
+  }
 
-	renderBasketItems() {
-		let counter = 1;
-		this._list.innerHTML = '';
-		this.itemsInBasket.forEach((item) => {
-			const newItem = createElement<HTMLLIElement>('li', {
-				className: 'basket__item card card_compact',
-			});
-			newItem.innerHTML = `
-				<span class="basket__item-index">${counter}</span>
-                <span class="card__title">${item.title}</span>
-                <span class="card__price">${item.price} синапсов</span>
-                <button class="basket__item-delete card__button" aria-label="удалить"></button>
-            `;
-			counter += 1;
-			newItem
-				.querySelector('.basket__item-delete')
-				?.addEventListener('click', () => {
-					this.removeItemFromBasket(item);
-				});
-			this._list.appendChild(newItem);
-		});
-	}
+  set price(value: number) {
+    this.setText(this._price, value.toString() + ' синапсов')
+  }
 
-	getItemsInBasket(): ProductItem[] {
-		if (this.itemsInBasket.length === 0) {
-			this._list.innerHTML = '<p>Корзина пуста</p>';
-			this.setDisabled(this._orderButton, true);
-		} else {
-			this.setDisabled(this._orderButton, false);
-		}
-
-		return this.itemsInBasket;
-	}
-
-	getItemId() {
-		return this.itemsInBasket.map((item) => item.id);
-	}
-
-	clearBasket() {
-		// Очистка массива товаров в корзине
-		this.itemsInBasket = [];
-		// Обновление отображения корзины
-		this.renderBasketItems();
-		// Обновление общей суммы
-		this.updateTotal();
-		// Очистка localstorage
-		localStorage.removeItem('basketItems');
-		// Обновление счетчика
-		this.updateCounter();
-	}
-
-	// Метод для обновления счетчика
-	private updateCounter() {
-		this._counter.textContent = this.itemsInBasket.length.toString();
-	}
+  set index(value: number) {
+    this.setText(this._index, value.toString())
+  }
 }
