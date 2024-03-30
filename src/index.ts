@@ -2,17 +2,18 @@ import { Page } from './components/Page';
 import { Api, ApiListResponse } from './components/base/api';
 import { EventEmitter } from './components/base/events';
 import { Modal } from './components/common/Modal';
-import { StoreItem, StoreItemPreview } from './components/Card';
+import { Card, CardInBasket, StoreItemPreview } from './components/Card';
 import { AppState, Product } from './components/AppData';
 import { ensureElement, cloneTemplate } from './utils/utils';
 import { ApiResponse, IOrderForm, IProduct } from './types/types';
 import './scss/styles.scss';
-import { Basket, StoreItemBasket } from './components/common/Basket';
+import { Basket} from './components/common/Basket';
 import { Order } from './components/Order';
 import { Contacts , IContacts} from './components/Contacts';
 import { Success } from './components/Success';
+import { API_URL } from './utils/constants';
 
-const api = new Api('https://larek-api.nomoreparties.co/api/weblarek');
+const api = new Api(API_URL);
 const events = new EventEmitter();
 
 // Шаблоны
@@ -50,7 +51,7 @@ api
 
 events.on('items:changed', () => {
   page.shop = appData.goods.map((item) => {
-    const product = new StoreItem(cloneTemplate(storeProductTemplate), {
+    const product = new Card("card",cloneTemplate(storeProductTemplate), {
       onClick: () => events.emit('card:select', item),
     });
     return product.render({
@@ -110,7 +111,7 @@ events.on('orderInput:change', (data: { field: keyof IOrderForm, value: string }
 events.on('basket:open', () => {
   page.locked = true
   const basketItems = appData.basket.map((item, index) => {
-    const storeItem = new StoreItemBasket('card',cloneTemplate(cardBasketTemplate),
+    const storeItem = new CardInBasket('card',cloneTemplate(cardBasketTemplate),
       {
         onClick: () => events.emit('basket:delete', item)
       }

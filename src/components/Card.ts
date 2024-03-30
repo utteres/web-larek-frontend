@@ -1,30 +1,31 @@
 import { Component } from './base/Component';
 import { CategoryType , ICard , CategoryObject} from '../types/types';
 import { ensureElement} from '../utils/utils';
+import { CDN_URL } from '../utils/constants';
 
 interface ICardActions {
   onClick: (event: MouseEvent) => void;
 }
 
-const CDN_URL = 'https://larek-api.nomoreparties.co/content/weblarek'
 export class Card extends Component<ICard> {
   protected _title: HTMLElement;
-  protected _image: HTMLImageElement;
   protected _category: HTMLElement;
   protected _price: HTMLElement;
   protected _button: HTMLButtonElement;
+  protected _image: HTMLImageElement;
 
   constructor(protected blockName: string , container: HTMLElement , actions?: ICardActions ) {
     super(container);
 
     this._title = ensureElement<HTMLElement>(`.${blockName}__title`, container);
-    this._image = ensureElement<HTMLImageElement>(`.${blockName}__image`, container );
+    this._image = container.querySelector(`.${blockName}__image`);
     this._button = this.domButton( blockName , '__button')
     this._category = this.domElement(blockName , '__category');
     this._price = this.domElement(blockName , '__price');
 
+  
 
-    if (actions && typeof actions.onClick === 'function') {
+    if (this._image && actions && typeof actions.onClick === 'function') {
 			const element = this._button ? this._button : container;
 			element.addEventListener('click', actions.onClick);
 		}
@@ -46,8 +47,10 @@ export class Card extends Component<ICard> {
   }
 
   set image(value: string) {
-    this._image.src = CDN_URL + value;
-  }
+    if (this._image) {
+        this._image.src = CDN_URL + value;
+    }
+}
 
   set selected(value: boolean) {
     if (!this._button.disabled) {
@@ -56,7 +59,7 @@ export class Card extends Component<ICard> {
   }
 
   set price(value: number | null) {
-    this._price.textContent = value? value.toString() + ' синапсов': 'Нет цены';
+    this._price.textContent = value? value.toString() + ' синапсов': 'Бесценно';
     if (this._button && !value) {
       this._button.disabled = true;
     }
@@ -72,11 +75,7 @@ export class Card extends Component<ICard> {
 	}
 }
 
-export class StoreItem extends Card {
-  constructor(container: HTMLElement, actions?: ICardActions) {
-    super('card', container, actions);
-  }
-}
+
 
 export class StoreItemPreview extends Card {
   protected _description: HTMLElement;
@@ -89,6 +88,26 @@ export class StoreItemPreview extends Card {
   set description(value: string) {
     this.setText(this._description , value)
   }
+}
+
+export class CardInBasket extends Card {
+protected _index: HTMLElement;
+  constructor(protected blockName: string , container: HTMLElement , actions?: ICardActions ) {
+    super('card', container, actions);
+    this._index = container.querySelector(`.basket__item-index`);
+
+    if (this._button) {
+      this._button.addEventListener('click', (evt) => {
+        this.container.remove();
+        actions?.onClick(evt);
+      });
+    }
+}
+set index(value: number) {
+  if (this._index){
+  this.setText(this._index, value.toString())
+  }
+}
 }
 
   

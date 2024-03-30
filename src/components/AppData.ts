@@ -44,8 +44,9 @@ export class AppState extends Model<IAppState> {
   }
 
   setItems() {
-    this.order.items = this.basket.map(item => item.id)
+    this.order.items = this.basket.map(item => item.id);
   }
+
 
   setOrderField(field: keyof IOrderForm, value: string) {
     this.order[field] = value;
